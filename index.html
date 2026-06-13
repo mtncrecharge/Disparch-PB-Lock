@@ -87,11 +87,29 @@ body {
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
-/* Dispatch panel: native mobile width */
-#tab-dispatch { max-width: 430px; margin: 0 auto; }
+/* Both panels full desktop */
+#tab-dispatch, #tab-pblock { width: 100%; }
 
-/* PBLock panel: full desktop width */
-#tab-pblock { width: 100%; }
+/* Dispatch desktop layout */
+#tab-dispatch .sum-grid { grid-template-columns: repeat(6, 1fr); padding: 0.8rem 2rem; gap: 10px; }
+#tab-dispatch .filters { padding: 0 2rem 1rem; flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center; }
+#tab-dispatch .filters .sw { flex: 1; min-width: 220px; }
+#tab-dispatch .filters .fr { flex: none; display: flex; gap: 8px; }
+#tab-dispatch .filters .fs { min-width: 140px; }
+#tab-dispatch .tw { padding: 0 2rem; }
+#tab-dispatch .tscr { max-height: 60vh; }
+#tab-dispatch table { font-size: 13px; }
+#tab-dispatch th { font-size: 10px; padding: 10px 10px; }
+#tab-dispatch td { padding: 9px 10px; font-size: 12px; }
+#tab-dispatch th:nth-child(1) { width: 18%; }
+#tab-dispatch th:nth-child(2) { width: 30%; }
+#tab-dispatch th:nth-child(3) { width: 16%; }
+#tab-dispatch th:nth-child(4) { width: 16%; }
+#tab-dispatch .dursec { padding: 1rem 2rem 0; }
+#tab-dispatch .mapsec { padding: 1rem 2rem 1.5rem; }
+#tab-dispatch #map { height: 420px; }
+#tab-dispatch .header { padding: 0 2rem; }
+#tab-dispatch .cnt-row { display: none; }
 
 /* ══════════════════════════════════════════
    DISPATCH CSS
@@ -114,7 +132,7 @@ body.light-mode{
   --header:#1a2e1c;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;overflow-x:hidden;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
 
 .header{background:var(--header);border-bottom:3px solid var(--green);padding:0.75rem 1rem;position:sticky;top:0;z-index:100;}
 .htop{display:flex;align-items:center;justify-content:space-between;}
@@ -3011,6 +3029,32 @@ function fetchWithTimeout(url, ms) {
   return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
 }
 
+async function pb_fastFetch(url) {
+  // Try direct first (fastest — no proxy hop)
+  try {
+    const r = await fetchWithTimeout(url + '&t=' + Date.now(), 5000);
+    if (r.ok) {
+      const text = await r.text();
+      if (text.includes('Terminal')) return text;
+    }
+  } catch(e) {}
+
+  // Parallel race all proxies — whoever wins first
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+
+  const attempts = proxies.map(p =>
+    fetchWithTimeout(p, 6000)
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(t => { if (!t.includes('Terminal')) throw new Error('Invalid CSV'); return t; })
+  );
+
+  return Promise.any(attempts);
+}
+
 function loadCache() {
   try {
     const raw = localStorage.getItem(PB_CACHE_KEY);
@@ -3047,21 +3091,8 @@ async function loadData(isRetry = false) {
   const icon = document.getElementById('pb-refresh-icon');
   icon.classList.add('pb-spinning');
 
-  const attempts = PROXIES.map(proxy =>
-    fetchWithTimeout(proxy(PB_CSV_URL), 8000)
-      .then(res => {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.text();
-      })
-      .then(text => {
-        // Validate it's real CSV with expected headers
-        if (!text.includes('Terminal ID') && !text.includes('Terminal Name')) throw new Error('Invalid CSV');
-        return text;
-      })
-  );
-
   try {
-    const text = await Promise.any(attempts);
+    const text = await pb_fastFetch(PB_CSV_URL);
     saveCache(text);
     allData = pb_parseCSV(text).map(enrich);
     populateFilters();
