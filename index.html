@@ -1299,6 +1299,30 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 
   #loading-overlay.hidden { opacity: 0; pointer-events: none; }
 
+  #pb-loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,15,16,.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    transition: opacity .3s;
+    /* Hanya visible kalau tab-pblock aktif */
+  }
+
+  /* Sembunyikan pb-loading-overlay kalau tab-pblock tidak active */
+  /* NOTE: karena position:fixed tidak dipengaruhi parent visibility,
+     kontrol visibilitas dilakukan via JS di switchTab() */
+  #pb-loading-overlay.tab-hidden { display: none !important; }
+
+  #pb-loading-overlay.hidden { opacity: 0; pointer-events: none; display: none; }
+
   .pb-spinner {
     width: 32px;
     height: 32px;
@@ -1611,6 +1635,14 @@ function switchTab(name) {
   document.getElementById('tabnav-' + name).classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  // pb-loading-overlay pakai position:fixed — tidak terpengaruh parent visibility
+  // harus dikontrol manual biar tidak keliatan saat tab PB Lock tidak aktif
+  const pbOverlay = document.getElementById('pb-loading-overlay');
+  if (pbOverlay) {
+    if (name === 'pblock') pbOverlay.classList.remove('tab-hidden');
+    else pbOverlay.classList.add('tab-hidden');
+  }
+
   if (name === 'pblock' && !_pbLockInited) {
     _pbLockInited = true;
     setTimeout(() => { pb_loadData(); }, 80);
@@ -1811,6 +1843,9 @@ function applyLogin(){
   if(CURRENT_USER.role === 'tech'){
     document.getElementById('rowTechLoc').style.display = 'none';
   }
+  // Sembunyikan pb-loading-overlay saat login — tab dispatch yang aktif duluan
+  const pbOverlay = document.getElementById('pb-loading-overlay');
+  if (pbOverlay) pbOverlay.classList.add('tab-hidden');
   preloadMap();
   scheduleNotification();
   // Fix #5 — tech loadData dipanggil dari checkTrackingStatus, bukan di sini
