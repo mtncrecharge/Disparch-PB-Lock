@@ -2198,16 +2198,16 @@ async function loadDurasi(){
       return`<div class="dur-card">
         <div class="dur-avatar">${init}</div>
         <div class="dur-info">
-          <div class="dur-name">${tech}</div>
+          <div class="dur-name" style="display:flex;align-items:center;gap:8px;">
+            ${tech}
+            <span style="font-size:10px;font-weight:700;color:${assignColor};background:rgba(255,255,255,0.06);border-radius:5px;padding:1px 7px;">${assignStr} selesai</span>
+          </div>
           <div class="dur-time">${fmt(v.first)} – ${fmt(v.last)}</div>
           <div class="dur-bar-wrap"><div class="dur-bar" style="width:${pct}%"></div></div>
         </div>
         <div class="dur-right">
           <div class="dur-dur">${durStr}</div>
-          <div class="dur-jobs" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-            <span>${v.count} form</span>
-            <span style="font-size:10px;font-weight:700;color:${assignColor}">${assignStr} selesai</span>
-          </div>
+          <div class="dur-jobs">${v.count} form</div>
         </div>
       </div>`;
     });
@@ -2219,16 +2219,17 @@ async function loadDurasi(){
       return`<div class="dur-card inactive">
         <div class="dur-avatar" style="background:rgba(255,82,82,0.15);color:#ff5252;border:1px solid rgba(255,82,82,0.3)">${init}</div>
         <div class="dur-info">
-          <div class="dur-name">${tech}<span class="dur-inactive-badge">Belum mulai</span></div>
+          <div class="dur-name" style="display:flex;align-items:center;gap:8px;">
+            ${tech}
+            <span class="dur-inactive-badge">Belum mulai</span>
+            <span style="font-size:10px;font-weight:700;color:var(--red);background:rgba(255,255,255,0.06);border-radius:5px;padding:1px 7px;">${assignStri} selesai</span>
+          </div>
           <div class="dur-time">Tidak ada aktivitas hari ini</div>
           <div class="dur-bar-wrap"><div class="dur-bar" style="width:0%"></div></div>
         </div>
         <div class="dur-right">
           <div class="dur-dur" style="color:#ff5252">—</div>
-          <div class="dur-jobs" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-            <span>0 form</span>
-            <span style="font-size:10px;font-weight:700;color:var(--red)">${assignStri} selesai</span>
-          </div>
+          <div class="dur-jobs">0 form</div>
         </div>
       </div>`;
     });
